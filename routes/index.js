@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 var request = require('request');
 
-function getEndPoint(buildingName, level) {
+function getUrl(buildingName, level) {
     return 'http://ShowMyWay.comp.nus.edu.sg/getMapInfo.php?Building='
         + buildingName + '&Level=' + level;
 }
@@ -40,7 +40,6 @@ function getEdges(nodes) {
             edge.start = start;
             edge.end = getEndCoordinates(endPointIds[j], nodes);
             edges.push(edge);
-            console.log(edge);
         }
     }
     return edges;
@@ -48,19 +47,25 @@ function getEdges(nodes) {
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-    var building = 'COM2';
+    var building = 'COM1';
     var level = '2';
-    var endpoint = getEndPoint(building, level);
-    console.log(endpoint);
 
-    request(endpoint, function (error, response, body) {
-        getEdges(JSON.parse(body).map);
+    res.render('index',
+        {   title:'CG3002 Path Planning',
+            building: building,
+            level: level
+        });
+});
 
-        res.render('index',
-            {   title:'CG3002 Path Planning',
-                building: building,
-                level: level
-            });
+router.get('/map', function(req, res, next) {
+    var building = 'COM1';
+    var level = '2';
+    var url = getUrl(building, level);
+
+    request(url, function (error, response, body) {
+        var nodes = JSON.parse(body).map;
+        var edges = getEdges(nodes);
+        res.send(JSON.stringify({nodes:nodes, edges: edges}));
     });
 });
 
