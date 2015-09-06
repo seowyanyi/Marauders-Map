@@ -1,0 +1,115 @@
+extends layout
+
+block content
+    h2 #{building} Level #{level}
+    #container
+    script.
+        var w = 900;
+        var h = 600;
+        var linkDistance = 200;
+        var colors = d3.scale.category10();
+
+        var mapInfo = {
+            "info": {
+                "northAt": "180"
+            },
+            "map": [
+                {
+                    "nodeId": "1",
+                    "x": "200",
+                    "y": "100",
+                    "nodeName": "Entrance",
+                    "linkTo": "2"
+                },
+                {
+                    "nodeId": "2",
+                    "x": "400",
+                    "y": "100",
+                    "nodeName": "Room 1",
+                    "linkTo": "3"
+                },
+                {
+                    "nodeId": "3",
+                    "x": "400",
+                    "y": "200",
+                    "nodeName": "Room 2",
+                    "linkTo": "4, 8"
+                },
+                {
+                    "nodeId": "4",
+                    "x": "600",
+                    "y": "200",
+                    "nodeName": "Male Toilet",
+                    "linkTo": "6"
+                }
+            ]
+        };
+        var links = [
+            {
+                "start": [200, 100],
+                "end": [400, 100]
+            },
+            {
+                "start": [400, 100],
+                "end": [400, 200]
+            },
+            {
+                "start": [400, 200],
+                "end": [600, 200]
+            }
+        ];
+
+
+        var svg = d3.select("#container").append("svg")
+                .attr({"width": w, "height": h})
+                .style("border", "1px solid black");
+
+        var elemEdge = svg.selectAll("line")
+                .data(links)
+                .enter();
+
+        var edges = elemEdge.append("line")
+                .attr("x1", function (d) { return d.start[0]; })
+                .attr("y1", function (d) { return d.start[1]; })
+                .attr("x2", function (d) { return d.end[0]; })
+                .attr("y2", function (d) { return d.end[1]; })
+                .attr("stroke-width", 2)
+                .attr("stroke", "gray");
+
+        var elemNode = svg.selectAll("circle")
+                .data(mapInfo.map)
+                .enter();
+
+        var nodes = elemNode.append("circle")
+                .attr("cx", function (d) {
+                    return parseInt(d.x);
+                })
+                .attr("cy", function (d) {
+                    return parseInt(d.y);
+                })
+                .attr({"r": 15})
+                .style("fill", function (d, i) {
+                    return colors(i);
+                });
+
+        var nodeNames = elemNode.append("text")
+                .attr("x", function (d) {
+                    return parseInt(d.x);
+                })
+                .attr("y", function (d) {
+                    return parseInt(d.y) - 20;
+                })
+                .text(function (d) {
+                    return d.nodeName;
+                });
+
+        var nodeId = elemNode.append("text")
+                .attr("x", function (d) {
+                    return parseInt(d.x) - 5;
+                })
+                .attr("y", function (d) {
+                    return parseInt(d.y) + 5;
+                })
+                .text(function (d) {
+                    return d.nodeId;
+                });
