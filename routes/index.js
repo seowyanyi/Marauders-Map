@@ -4,17 +4,38 @@ var request = require('request');
 var mongoose = require('mongoose');
 var mongoURI = "mongodb://localhost:27017/test";
 var MongoDB = mongoose.connect(mongoURI).connection;
-MongoDB.on('error', function(err) { console.log(err.message); });
-MongoDB.once('open', function() {
-    console.log("mongodb connection open");
-});
 
+/////////// CONSTANTS //////////////
 var DISCONNECTED = 0;
 var CONNECTED = 1;
 var CONNECTING = 2;
 var DISCONNECTING = 3;
 var ERROR = "error";
 var STATUS = "status";
+////////////////////////////////////
+
+//////////////// MONGO DB STUFF ////////////////
+MongoDB.on('error', function(err) { console.log(err.message); });
+MongoDB.once('open', function() {
+    console.log("mongodb connection open");
+});
+
+var schema = mongoose.Schema({
+    transaction_id: String,
+    stage: Number,
+    building: String,
+    level: Number,
+    path: [Number]
+});
+
+//var numStagesSchema = mongoose.Schema({
+//    transaction_id: String,
+//    count: Number
+//});
+
+var Stage = mongoose.model('Stage', schema);
+//var Num = mongoose.model('Num', numStagesSchema);
+/////////////////////////////////////////////////
 
 function getUrl(buildingName, level) {
     return 'http://ShowMyWay.comp.nus.edu.sg/getMapInfo.php?Building='
@@ -63,46 +84,50 @@ router.get('/', function(req, res, next) {
     res.send('Hello :)');
 });
 
-router.get('/visualize/:transaction_id', function(req, res, next) {
-    var building = 'COM1';
-    var level = '2';
-
-    //res.render('index',
-    //    {   title:'CG3002 Path Planning',
-    //        building: building,
-    //        level: level
-    //    });
-    res.send(req.params.transaction_id);
+router.get('/visualize', function(req, res, next) {
+    Stage.find({'transaction_id': req.query.transaction_id}, function(err, stagesArr) {
+        if (err) {
+            res.send(err);
+        } else {
+            res.render('index',
+                {   title:'CG3002 Path Planning',
+                    stagesArr: stagesArr
+                });
+        }
+    });
 });
 
 router.get('/draw_path', function(req, res, next) {
     var plannedRoute = JSON.parse(req.query.path);
     var transId = new Date().getTime().toString();
-    var schema = mongoose.Schema({
-        transaction_id: String,
-        stage: Number,
-        building: String,
-        level: Number,
-        path: [Number]
-    });
-
     var errorResponse = {};
     errorResponse["status"] = "fail";
+    errorResponse["error"] = "";
 
     var readyState = mongoose.connection.readyState;
     if (readyState === CONNECTED) {
-        var Stage = mongoose.model('Stage', schema);
         var error = false;
+        var numOfStages = plannedRoute.length;
 
-        for (var i = 0; i < plannedRoute.length; ++i) {
+        // save the number of stages
+        //var numStagesModel = new Num({transaction_id: transId, count: numOfStages});
+        //numStagesModel.save(function (err) {
+        //    if (err) {
+        //        error = true;
+        //        errorResponse["error"] += err;
+        //    }
+        //});
+
+        // save the route info
+        for (var i = 0; i < numOfStages; ++i) {
             var currStage = plannedRoute[i];
             currStage["transaction_id"] = transId;
             var currentStageModel = new Stage(currStage);
+
             currentStageModel.save(function (err) {
                 if (err) {
                     error = true;
-                    errorResponse["error"] = err;
-                    res.json(errorResponse);
+                    errorResponse["error"] += err;
                 }
             });
         }
@@ -112,7 +137,10 @@ router.get('/draw_path', function(req, res, next) {
             response["transaction_id"] = transId;
             response[STATUS] = "OK";
             res.json(response);
+        } else {
+            res.json(errorResponse);
         }
+
     } else if (readyState === DISCONNECTING) {
         errorResponse[ERROR] = "Mongodb disconnecting";
         res.json(errorResponse);
@@ -129,15 +157,41 @@ router.get('/draw_path', function(req, res, next) {
 });
 
 router.get('/map', function(req, res, next) {
-    var building = 'COM1';
-    var level = '2';
-    var url = getUrl(building, level);
+    Stage.find({'transaction_id': req.query.transaction_id}, function(err, stagesArr) {
+        if (err) {
+            res.send(err);
+        } else {
+            var result = [];
 
-    request(url, function (error, response, body) {
-        var nodes = JSON.parse(body).map;
-        var edges = getEdges(nodes);
-        res.send(JSON.stringify({nodes:nodes, edges: edges}));
+            // Get map data and find nodes and edges
+            var numStages = stagesArr.length;
+            var count = 0;
+            for(var j = 0; j < numStages; j++){
+                (function(foo){
+                    var currentStage = stagesArr[j];
+                    request(getUrl(currentStage.building, currentStage.level), function (error, response, body) {
+                        var nodes = JSON.parse(body).map;
+                        var edges = getEdges(nodes);
+                        var graph = {stage:currentStage.stage, nodes:nodes, edges:edges};
+                        result.push(graph);
+                        count++;
+                        if (count > numStages - 1) done();
+                    });
+                }(j));
+            }
+
+            function done() {
+                console.log('All data has been loaded.');
+                console.log(result);
+                res.json({graph: result, stages: stagesArr});
+            }
+
+        }
     });
+
+//  res.send(JSON.stringify({nodes:nodes, edges: edges, stages: stagesArr})); //todo: use res.json
+
+
 });
 
 module.exports = router;

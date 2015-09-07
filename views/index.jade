@@ -1,5 +1,7 @@
 extends layout
 
 block content
-    h2 #{building} Level #{level}
-    #container
+    each stage in stagesArr
+        h2 #{stage.building} Level #{stage.level}
+        - var cls = "stage" + stage.stage;
+        div(class="#{cls}")
