@@ -36,14 +36,25 @@ function getUrl(buildingName, level) {
         + buildingName + '&Level=' + level;
 }
 
-function getEndCoordinates(endpointId, nodes) {
+function getCoordinates(id, nodes) {
     for (var i = 0; i < nodes.length; i++) {
         var currNode = nodes[i];
-        if (parseInt(currNode.nodeId) === endpointId) {
+        if (parseInt(currNode.nodeId) === id) {
             return [parseInt(currNode.x), parseInt(currNode.y)];
         }
     }
-    throw endpointId + " not found in the list of nodes";
+    throw id + " not found in the list of nodes";
+}
+
+function getEdgesOfPath(pathArr, nodes) {
+    var edges = [];
+    for (var i = 0; i < pathArr.length-1; ++i) {
+        var edge = {};
+        edge.start = getCoordinates(pathArr[i], nodes);
+        edge.end = getCoordinates(pathArr[i+1], nodes);
+        edges.push(edge);
+    }
+    return edges;
 }
 
 /**
@@ -67,7 +78,7 @@ function getEdges(nodes) {
         for (var j = 0; j < endPointIds.length; j++) {
             var edge = {};
             edge.start = start;
-            edge.end = getEndCoordinates(endPointIds[j], nodes);
+            edge.end = getCoordinates(endPointIds[j], nodes);
             edges.push(edge);
         }
     }
@@ -118,6 +129,7 @@ router.get('/draw_path', function(req, res, next) {
         }
 
         if (!error) {
+            console.log('transaction id: ' + transId);
             var response = {};
             response["transaction_id"] = transId;
             response[STATUS] = "OK";
@@ -157,7 +169,8 @@ router.get('/map', function(req, res, next) {
                     request(getUrl(currentStage.building, currentStage.level), function (error, response, body) {
                         var nodes = JSON.parse(body).map;
                         var edges = getEdges(nodes);
-                        var graph = {stage:currentStage.stage, nodes:nodes, edges:edges};
+                        var pathEdges = getEdgesOfPath(currentStage.path, nodes);
+                        var graph = {stage:currentStage.stage, nodes:nodes, edges:edges, pathEdges: pathEdges};
                         result.push(graph);
                         count++;
                         if (count > numStages - 1) done();
@@ -167,7 +180,7 @@ router.get('/map', function(req, res, next) {
 
             function done() {
                 console.log('All data has been loaded.');
-                res.json({graph: result, stages: stagesArr});
+                res.json({graph: result});
             }
         }
     });
