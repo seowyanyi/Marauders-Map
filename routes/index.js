@@ -28,13 +28,7 @@ var schema = mongoose.Schema({
     path: [Number]
 });
 
-//var numStagesSchema = mongoose.Schema({
-//    transaction_id: String,
-//    count: Number
-//});
-
 var Stage = mongoose.model('Stage', schema);
-//var Num = mongoose.model('Num', numStagesSchema);
 /////////////////////////////////////////////////
 
 function getUrl(buildingName, level) {
@@ -109,15 +103,6 @@ router.get('/draw_path', function(req, res, next) {
         var error = false;
         var numOfStages = plannedRoute.length;
 
-        // save the number of stages
-        //var numStagesModel = new Num({transaction_id: transId, count: numOfStages});
-        //numStagesModel.save(function (err) {
-        //    if (err) {
-        //        error = true;
-        //        errorResponse["error"] += err;
-        //    }
-        //});
-
         // save the route info
         for (var i = 0; i < numOfStages; ++i) {
             var currStage = plannedRoute[i];
@@ -182,16 +167,10 @@ router.get('/map', function(req, res, next) {
 
             function done() {
                 console.log('All data has been loaded.');
-                console.log(result);
                 res.json({graph: result, stages: stagesArr});
             }
-
         }
     });
-
-//  res.send(JSON.stringify({nodes:nodes, edges: edges, stages: stagesArr})); //todo: use res.json
-
-
 });
 
 module.exports = router;
