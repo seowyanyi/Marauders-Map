@@ -6,11 +6,13 @@ Real time visualization of map for indoor navigation
 3. Navigate to /bin and type `node www` to start the server
 
 API
+===
 
 1. Initialize path
-==================
+-------------------
 
-GET http://localhost:3000/draw_path?path=Your_path_json_here
+`GET http://localhost:3000/draw_path?path=Your_path_json_here`
+
 Please follow format given in documentation. No error checking is done.
 Example:
 
@@ -21,7 +23,8 @@ Returns this if success:
 `{"transaction_id":"1441722440421","status":"OK"}`
 
 2. View map
-===========
+-----------
+
 Go to the following page of your browser
 
 `http://localhost:3000/visualize?transaction_id=1441722440421`
