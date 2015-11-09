@@ -1,5 +1,5 @@
 # Marauders-Map
-Real time visualization of map for indoor navigation
+Visualization of route for indoor navigation
 
 1. Install mongodb, nodejs. Ensure mongodb is running
 2. Go to root folder (with package.json) and type `npm install`
